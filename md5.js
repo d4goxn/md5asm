@@ -29,10 +29,10 @@
 					(x<<24)
 				)|0; 
 			}
-			// other type
-			for (var i = 0; i < n.length; i++)
-				n[i] = endian_swap(n[i]);
-			return n;
+			// other type : assuming this is array
+			for (var i = 0; i < x.length; i++)
+				x[i] = endian_swap(x[i]);
+			return x;
 		}
 
 		// binary functions
@@ -91,6 +91,9 @@
 			for (var i = 0; i < m.length; i++) {
 				m[i] = endian_swap(m[i]);
 			}
+
+			m[l >>> 5] |= 0x80 << (l % 32);
+			m[(((l + 64) >>> 9) << 4) + 14] = l;
 
 			for (var i = 0; i < m.length; i += 16) {
 				var aa = a,
@@ -173,8 +176,12 @@
 				d = (d + dd) >>> 0;
 			}
 
-			return endian([a, b, c, d]);
+			return endian_swap([a, b, c, d]);
 		}
+
+		return {
+			run: run
+		};
 	}
 
 	function md5(s) {
