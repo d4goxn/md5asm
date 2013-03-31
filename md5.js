@@ -1,23 +1,23 @@
 (function() {
 	'use strict';
 
-	function module(stdlib, str, l, heap) {
+	function module(stdlib, str, heap) {
 		'use asm';
 
-		var m = stringToBytes(str);
-		m = bytesToWords(m);
-		var l = m.length * 8;
+		str = stringToBytes(str);
+		var m = bytesToWords(str);
+		var l = str.length * 8;
+
+		var a = 1732584193,
+			b = -271733879,
+			c = -1732584194,
+			d = 271733878;
 
 		// Binary Left Rotate
 		function S(X, n) {
 			X = X|0; n = n|0;
 			return ( X << n ) | (X >> (32 - n))|0;
 		}
-
-		var a = 1732584193,
-			b = -271733879,
-			c = -1732584194,
-			d = 271733878;
 
 		function endian_swap(x) {
 			if (x.constructor == Number) {
@@ -33,24 +33,6 @@
 			for (var i = 0; i < x.length; i++)
 				x[i] = endian_swap(x[i]);
 			return x;
-		}
-
-		// binary functions
-		function F(x,y,z) { 
-			x = x|0; y = y|0; z = z|0;
-			return (x & y) | ((~x) & z); 
-		}
-		function G(x,y,z) { 
-			x = x|0; y = y|0; z = z|0;
-			return (x & z) | (y & (~z)); 
-		}
-		function H(x,y,z) { 
-			x = x|0; y = y|0; z = z|0;
-			return (x ^ y ^ z); 
-		}
-		function I(x,y,z) {
-			x = x|0; y = y|0; z = z|0;
-			return (y ^ (x | (~z))); 
 		}
 
 		function ff (a, b, c, d, x, s, t) {
@@ -81,15 +63,36 @@
 			return bytes;
 		}
 
+		function bytesToString(bytes) {
+			for (var str = [], i = 0; i < bytes.length; i++)
+				str.push(String.fromCharCode(bytes[i]));
+			return str.join("");
+		}
+
 		function bytesToWords(bytes) {
 			for (var words = [], i = 0, b = 0; i < bytes.length; i++, b += 8)
 				words[b >>> 5] |= (bytes[i] & 0xFF) << (24 - b % 32);
 			return words;
 		}
 
+		function wordsToBytes(words) {
+			for (var bytes = [], b = 0; b < words.length * 32; b += 8)
+				bytes.push((words[b >>> 5] >>> (24 - b % 32)) & 0xFF);
+			return bytes;
+		}
+
+		function bytesToHex(bytes) {
+			for (var hex = [], i = 0; i < bytes.length; i++) {
+			hex.push((bytes[i] >>> 4).toString(16));
+			hex.push((bytes[i] & 0xF).toString(16));
+			}
+			return hex.join("");
+		}
+
 		function run() {
 			for (var i = 0; i < m.length; i++) {
-				m[i] = endian_swap(m[i]);
+				m[i] = ((m[i] << 8) | (m[i] >>> 24)) & 0x00FF00FF |
+						((m[i] << 24) | (m[i] >>> 8)) & 0xFF00FF00;
 			}
 
 			m[l >>> 5] |= 0x80 << (l % 32);
@@ -176,7 +179,11 @@
 				d = (d + dd) >>> 0;
 			}
 
-			return endian_swap([a, b, c, d]);
+			var swap = endian_swap([a, b, c, d]);
+
+			var bytes = wordsToBytes(swap);
+
+			return decodeURIComponent(escape(bytesToHex(bytes)));
 		}
 
 		return {
