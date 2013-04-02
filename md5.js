@@ -1,12 +1,8 @@
 (function() {
 	'use strict';
 
-	function module(stdlib, str, heap) {
+	function module(stdlib, m, l) {
 		'use asm';
-
-		str = stringToBytes(str);
-		var m = bytesToWords(str);
-		var l = str.length * 8;
 
 		var a = 1732584193,
 			b = -271733879,
@@ -54,39 +50,6 @@
 			a = a|0; b = b|0; c = c|0; d = d|0; x = x|0; s = s|0; t = t|0;
 			var n = a + (c ^ (b | ~d)) + (x >>> 0) + t;
 			return ((n << s) | (n >>> (32 - s))) + b;
-		}
-
-		function stringToBytes(str) {
-			str = unescape(encodeURIComponent(str));
-			for (var bytes = [], i = 0; i < str.length; i++)
-				bytes.push(str.charCodeAt(i) & 0xFF);
-			return bytes;
-		}
-
-		function bytesToString(bytes) {
-			for (var str = [], i = 0; i < bytes.length; i++)
-				str.push(String.fromCharCode(bytes[i]));
-			return str.join("");
-		}
-
-		function bytesToWords(bytes) {
-			for (var words = [], i = 0, b = 0; i < bytes.length; i++, b += 8)
-				words[b >>> 5] |= (bytes[i] & 0xFF) << (24 - b % 32);
-			return words;
-		}
-
-		function wordsToBytes(words) {
-			for (var bytes = [], b = 0; b < words.length * 32; b += 8)
-				bytes.push((words[b >>> 5] >>> (24 - b % 32)) & 0xFF);
-			return bytes;
-		}
-
-		function bytesToHex(bytes) {
-			for (var hex = [], i = 0; i < bytes.length; i++) {
-			hex.push((bytes[i] >>> 4).toString(16));
-			hex.push((bytes[i] & 0xF).toString(16));
-			}
-			return hex.join("");
 		}
 
 		function run() {
@@ -179,11 +142,7 @@
 				d = (d + dd) >>> 0;
 			}
 
-			var swap = endian_swap([a, b, c, d]);
-
-			var bytes = wordsToBytes(swap);
-
-			return decodeURIComponent(escape(bytesToHex(bytes)));
+			return endian_swap([a, b, c, d]);
 		}
 
 		return {
@@ -192,12 +151,50 @@
 	}
 
 	function md5(s) {
-		var heap = new ArrayBuffer(4096);
-		this.mod = module(window, s, heap);
+		var str = stringToBytes(s);
+		var m = bytesToWords(str);
+		var l = str.length * 8;
+		this.mod = module(window, m, l);
 	}
 
 	md5.prototype.getMd5 = function() {
-		return this.mod.run();
+		var result = this.mod.run();
+		var bytes = wordsToBytes(result);
+
+		return decodeURIComponent(escape(bytesToHex(bytes)));
+	}
+
+	function stringToBytes(str) {
+		str = unescape(encodeURIComponent(str));
+		for (var bytes = [], i = 0; i < str.length; i++)
+			bytes.push(str.charCodeAt(i) & 0xFF);
+		return bytes;
+	}
+
+	function bytesToString(bytes) {
+		for (var str = [], i = 0; i < bytes.length; i++)
+			str.push(String.fromCharCode(bytes[i]));
+		return str.join("");
+	}
+
+	function bytesToWords(bytes) {
+		for (var words = [], i = 0, b = 0; i < bytes.length; i++, b += 8)
+			words[b >>> 5] |= (bytes[i] & 0xFF) << (24 - b % 32);
+		return words;
+	}
+
+	function wordsToBytes(words) {
+		for (var bytes = [], b = 0; b < words.length * 32; b += 8)
+			bytes.push((words[b >>> 5] >>> (24 - b % 32)) & 0xFF);
+		return bytes;
+	}
+
+	function bytesToHex(bytes) {
+		for (var hex = [], i = 0; i < bytes.length; i++) {
+			hex.push((bytes[i] >>> 4).toString(16));
+			hex.push((bytes[i] & 0xF).toString(16));
+		}
+		return hex.join("");
 	}
 	
 	window.md5 = md5;
